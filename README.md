@@ -1,7 +1,9 @@
 # Robot Workflow Contracts
 
 A small, dependency-free foundation for running the same visual manipulation
-workflow across different robot environments.
+workflow across different robot environments. The generic multi-view pipeline
+is implemented here; simulator adapters, VLM clients, and the CoTracker model
+remain replaceable ports supplied by the integration project.
 
 It deliberately does **not** wrap a whole robot workflow as a Gymnasium
 wrapper.  Gymnasium remains the backend lifecycle (`reset`, `step`, `render`,
@@ -14,8 +16,9 @@ Gymnasium / simulator / robot SDK
             |
   canonical observation, motion, waypoint, calibration, evaluation ports
             |
-       WorkflowEngine
- calibration -> semantic planner -> deterministic fusion -> policy -> execution
+       WorkflowEngine + MultiViewCoTrackerPipeline
+ synchronized views -> image-space intent -> calibrated direction compiler
+                    -> policy waypoint -> adapter execution barrier
 ```
 
 ## Why this exists
@@ -48,6 +51,10 @@ WidowX encoder:    +1.0
    policy observation.
 6. Optional features are explicit capabilities. A workflow fails preflight
    rather than silently approximating an unsupported operation.
+7. A camera set is configured at runtime, not hard-coded to Bridge or to two
+   cameras. CoTracker artifacts are created once for each registered camera
+   setup and reused across decisions while their compatibility key still
+   matches. The intent VLM sees images and the task, not probe vectors.
 
 ## Package map
 
@@ -57,12 +64,15 @@ robot_workflow/
   ports.py       Adapter protocols (the boundary for every environment)
   registry.py    Explicit profile/factory registration
   workflow.py    Backend-independent preflight and command routing
+  pipeline.py    Reusable multi-view/CoTracker intent-to-waypoint orchestration
   examples.py    Google and Bridge profile declarations
 ```
 
 `examples.py` is declarative only. It intentionally does not import SimplerEnv
-or encode a robot pose. An integration repository should implement the actual
-adapter in its own backend module.
+or encode a robot pose. The old example profiles remain single-camera examples;
+an integration registers any additional cameras on its own `EnvironmentProfile`.
+It does not create another copy of `pipeline.py` for each robot. See
+[`docs/MULTIVIEW_COTRACKER_PIPELINE.md`](docs/MULTIVIEW_COTRACKER_PIPELINE.md).
 
 ## Minimal integration
 
@@ -93,6 +103,14 @@ execution, CoTracker probe calibration, or TCP feedback. A calibration-capable
 profile also registers its protocol version, allowed probe axes, displacement
 limit, and minimum repetition count.
 
+For multi-view operation, the adapter additionally declares
+`MULTI_VIEW_CAPTURE` and implements `capture_views(camera_ids)`. The returned
+frames must have the requested registered camera IDs/fingerprints and one
+shared non-null environment `state_id`; sequential camera renders are allowed
+as long as no environment step occurs between them. The adapter reports
+whether its waypoint actually reached its registered tolerance before another
+inference may occur.
+
 ## Verification
 
 The test suite uses only the Python standard library:
@@ -103,3 +121,5 @@ python -m unittest discover -s tests -v
 ```
 
 No simulator, model endpoint, package installation, or GPU is required.
+These tests verify the portable wiring and compiler math, **not** a successful
+Bridge episode or the accuracy of a live VLM/CoTracker installation.

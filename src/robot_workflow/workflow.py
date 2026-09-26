@@ -7,10 +7,10 @@ consume the context produced by this module, never the backend environment.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Mapping
 
 from .contracts import CalibrationArtifact, Capability, MotionCommand, TaskStatus, Waypoint
-from .ports import EnvironmentAdapter, ExecutionTrace, RGBObservation
+from .ports import EnvironmentAdapter, ExecutionTrace, MultiViewCaptureAdapter, RGBObservation
 
 
 class WorkflowPreflightError(RuntimeError):
@@ -30,6 +30,39 @@ class WorkflowContext:
 
     def observe(self) -> RGBObservation:
         return self._validate_observation(self._adapter.capture_rgb(self.camera_id))
+
+    def observe_views(self, camera_ids: tuple[str, ...]) -> Mapping[str, RGBObservation]:
+        """Capture arbitrary registered cameras at the same robot state."""
+        if len(camera_ids) < 2 or len(set(camera_ids)) != len(camera_ids):
+            raise WorkflowPreflightError("multi-view capture requires distinct camera ids")
+        if self.camera_id not in camera_ids:
+            raise WorkflowPreflightError("the prepared primary camera must be in the view set")
+        _require(self._adapter, (Capability.MULTI_VIEW_CAPTURE,))
+        for camera_id in camera_ids:
+            self._adapter.profile.camera(camera_id)
+        if not isinstance(self._adapter, MultiViewCaptureAdapter):
+            raise WorkflowPreflightError("adapter declares multi-view capture but has no capture_views port")
+        frames = self._adapter.capture_views(camera_ids)
+        if not isinstance(frames, Mapping):
+            raise WorkflowPreflightError("adapter capture_views must return a camera-id mapping")
+        if set(frames) != set(camera_ids):
+            raise WorkflowPreflightError("adapter returned a different set of camera views")
+        state_ids = set()
+        for camera_id in camera_ids:
+            frame = frames[camera_id]
+            camera = self._adapter.profile.camera(camera_id)
+            if frame.camera_id != camera.id or frame.camera_fingerprint != camera.fingerprint:
+                raise WorkflowPreflightError(f"invalid frame identity for {camera_id}")
+            if isinstance(frame.state_id, bool) or not isinstance(frame.state_id, (str, int)):
+                raise WorkflowPreflightError("multi-view frame lacks a valid environment state_id")
+            state_ids.add(frame.state_id)
+        if len(state_ids) != 1:
+            raise WorkflowPreflightError("camera frames were captured from different environment states")
+        return {camera_id: frames[camera_id] for camera_id in camera_ids}
+
+    def assert_camera_calibration_compatible(self, artifact: CalibrationArtifact, camera_id: str) -> None:
+        _require(self._adapter, (Capability.CALIBRATION_PROBES,))
+        artifact.assert_compatible(self._adapter.profile, camera_id)
 
     def move(self, command: MotionCommand) -> tuple[ExecutionTrace, TaskStatus]:
         if command.frame not in self._adapter.profile.motion.supported_frames:

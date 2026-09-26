@@ -21,6 +21,7 @@ class RGBObservation:
     camera_fingerprint: str
     rgb: Any
     timestamp_ns: int | None = None
+    state_id: str | int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +50,7 @@ class ExecutionTrace:
     tcp_before: Pose | None = None
     tcp_after: Pose | None = None
     stop_reason: str = ""
+    waypoint_reached: bool | None = None
 
 
 @runtime_checkable
@@ -76,3 +78,15 @@ class EnvironmentAdapter(Protocol):
     def task_status(self, transition: Transition) -> TaskStatus: ...
 
     def close(self) -> None: ...
+
+
+@runtime_checkable
+class MultiViewCaptureAdapter(Protocol):
+    """Optional atomic capture of registered views from one environment state.
+
+    A backend may render cameras sequentially, but it must not advance the
+    robot/environment between them. Every returned frame carries the same
+    non-null ``state_id`` so the workflow can verify that contract.
+    """
+
+    def capture_views(self, camera_ids: tuple[str, ...]) -> Mapping[str, RGBObservation]: ...

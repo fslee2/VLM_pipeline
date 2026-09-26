@@ -1,7 +1,9 @@
 # Planned Simpler Integration Boundary
 
-This repository is intentionally a clean contract scaffold. It does not yet
-run a SimplerEnv episode and must not be represented as an H3 or Bridge result.
+This repository now contains the generic synchronized-view, CoTracker-prior,
+visual-intent, policy, and waypoint orchestration. It still does not contain a
+live SimplerEnv adapter or run a SimplerEnv episode; passing portable tests must
+not be represented as an H3 or Bridge task result.
 
 ## What moves behind a Simpler adapter
 
@@ -9,7 +11,7 @@ run a SimplerEnv episode and must not be represented as an H3 or Bridge result.
 |---|---|
 | `simpler_env.make`, reset, `env.step`, close | `SimplerEnvironmentAdapter` lifecycle ownership |
 | `env.unwrapped._render_cameras["render_camera"]` | Google injected-camera implementation |
-| Bridge `3rd_view_camera` capture | WidowX native-camera implementation |
+| Registered Bridge primary/side capture without stepping between views | WidowX `capture_views` implementation with one shared `state_id` |
 | `current_tcp_pose(env)` and gripper joint reads | Simpler telemetry implementation |
 | `AbsolutePoseAdapter` interpolation | Registered Google/WidowX waypoint executor |
 | Google/WidowX numeric gripper conversion | Per-robot semantic-motion encoder |
@@ -39,13 +41,19 @@ artifact, gripper encoding, task phase machine, or TCP reference contract.
 
 1. Implement Google adapter only; run existing non-VLM reset/capture/motion
    checks and prove its native action trace equals the legacy path.
-2. Implement Bridge adapter with reset, `3rd_view_camera`, semantic gripper
-   encoding, and post-action status extraction. Do not call privileged object
-   poses from a policy-facing method.
+2. Implement Bridge adapter with reset, a configured set of registered camera
+   views, semantic gripper encoding, and post-action status extraction. Do not
+   call privileged object poses from a policy-facing method.
 3. Enable `CALIBRATION_PROBES` only after safe signed probe motions and camera
    fingerprint verification are recorded.
-4. Move CoTracker, semantic planning, fusion, and H3 rollout onto
-   `WorkflowContext` one stage at a time.
+4. Convert each saved camera's measured CoTracker directions into a
+   `CalibrationArtifact` bound to the registered camera/profile; instantiate
+   the shared `MultiViewCoTrackerPipeline` with those artifacts and the live
+   intent/policy clients. Do not copy the pipeline into a Bridge-specific runner.
+5. Compare one episode's VLM inputs, compiled prior, waypoint and native
+   action trace against the existing Simpler path before claiming behavioral
+   equivalence. Rotation calibration is not part of the current translation
+   direction compiler.
 
 ## Audit questions
 

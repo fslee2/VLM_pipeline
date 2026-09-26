@@ -22,6 +22,7 @@ class Capability(str, Enum):
     WAYPOINT_EXECUTION = "waypoint_execution"
     CALIBRATION_PROBES = "calibration_probes"
     TASK_EVALUATION = "task_evaluation"
+    MULTI_VIEW_CAPTURE = "multi_view_capture"
 
 
 class CameraKind(str, Enum):
@@ -220,6 +221,8 @@ class EnvironmentProfile:
         ids = [camera.id for camera in self.cameras]
         if not ids or len(set(ids)) != len(ids):
             raise ValueError("profile must contain uniquely named cameras")
+        if Capability.MULTI_VIEW_CAPTURE in self.capabilities and len(ids) < 2:
+            raise ValueError("multi_view_capture requires at least two registered cameras")
         waypoint_ids = [waypoint.id for waypoint in self.waypoint_profiles]
         if len(set(waypoint_ids)) != len(waypoint_ids):
             raise ValueError("waypoint profile ids must be unique")

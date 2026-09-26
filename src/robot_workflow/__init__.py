@@ -18,6 +18,10 @@ from .contracts import (
     WaypointSpec,
 )
 from .registry import ScenarioRegistry
+from .pipeline import (
+    CoTrackerCalibrationProvider, CoTrackerDirectionCompiler, CompiledDirectionPrior, MultiViewCoTrackerPipeline,
+    MultiViewVisualIntent, PipelineStepResult, ScreenDirection, build_cotracker_direction_artifact,
+)
 from .workflow import WorkflowEngine, WorkflowContext, WorkflowPreflightError
 
 __all__ = [
@@ -25,5 +29,8 @@ __all__ = [
     "Capability", "EnvironmentProfile", "GripperIntent", "MotionCommand",
     "MotionFrame", "MotionSpec", "Pose", "ScenarioRegistry", "TaskStatus",
     "Waypoint", "WaypointSpec", "WorkflowContext", "WorkflowEngine",
-    "WorkflowPreflightError",
+    "WorkflowPreflightError", "CoTrackerDirectionCompiler", "CompiledDirectionPrior",
+    "CoTrackerCalibrationProvider",
+    "MultiViewCoTrackerPipeline", "MultiViewVisualIntent", "PipelineStepResult", "ScreenDirection",
+    "build_cotracker_direction_artifact",
 ]
