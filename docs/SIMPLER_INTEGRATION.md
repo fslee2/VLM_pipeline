@@ -1,9 +1,9 @@
 # Planned Simpler Integration Boundary
 
-This repository now contains the generic synchronized-view, CoTracker-prior,
-visual-intent, policy, and waypoint orchestration. It still does not contain a
-live SimplerEnv adapter or run a SimplerEnv episode; passing portable tests must
-not be represented as an H3 or Bridge task result.
+This repository contains the generic synchronized-view, CoTracker-prior,
+visual-intent, policy, and waypoint orchestration, plus a concrete but
+not-yet-live-verified Bridge adapter example under `examples/bridge`. Passing
+portable fake-environment tests must not be represented as a Bridge episode.
 
 ## What moves behind a Simpler adapter
 
@@ -41,15 +41,17 @@ artifact, gripper encoding, task phase machine, or TCP reference contract.
 
 1. Implement Google adapter only; run existing non-VLM reset/capture/motion
    checks and prove its native action trace equals the legacy path.
-2. Implement Bridge adapter with reset, a configured set of registered camera
-   views, semantic gripper encoding, and post-action status extraction. Do not
-   call privileged object poses from a policy-facing method.
+2. Run `examples/bridge` in the existing Simpler runtime; verify registered
+   camera fingerprints, paired capture, action bounds, TCP pose conversion,
+   and waypoint completion against the actual Bridge environment. Do not call
+   privileged object poses from a policy-facing method.
 3. Enable `CALIBRATION_PROBES` only after safe signed probe motions and camera
    fingerprint verification are recorded.
-4. Convert each saved camera's measured CoTracker directions into a
-   `CalibrationArtifact` bound to the registered camera/profile; instantiate
-   the shared `MultiViewCoTrackerPipeline` with those artifacts and the live
-   intent/policy clients. Do not copy the pipeline into a Bridge-specific runner.
+4. The Bridge example converts each saved camera's measured CoTracker
+   directions into a `CalibrationArtifact` bound to the registered
+   camera/profile; connect live intent/policy clients and verify the assembled
+   `MultiViewCoTrackerPipeline`. Do not copy the pipeline into a
+   Bridge-specific runner.
 5. Compare one episode's VLM inputs, compiled prior, waypoint and native
    action trace against the existing Simpler path before claiming behavioral
    equivalence. Rotation calibration is not part of the current translation

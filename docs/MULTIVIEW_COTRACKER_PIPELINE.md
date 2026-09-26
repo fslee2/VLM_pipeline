@@ -87,6 +87,12 @@ either VLM input through this API.
 
 ## What the tests prove, and what they do not
 
+The repository's concrete SimplerEnv Bridge example lives in
+[`examples/bridge/README.md`](../examples/bridge/README.md). It implements the
+environment and calibration ports against this workflow; its VLM clients stay
+replaceable, and its adapter has only been verified with a fake Bridge runtime
+so far.
+
 The standard-library suite checks synchronized-view rejection, wrong camera
 and stale calibration rejection, rank-deficient geometry, signed XYZ compiler
 behavior, configurable policy image count, waypoint barrier, and reuse with

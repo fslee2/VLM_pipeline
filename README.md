@@ -66,12 +66,14 @@ robot_workflow/
   workflow.py    Backend-independent preflight and command routing
   pipeline.py    Reusable multi-view/CoTracker intent-to-waypoint orchestration
   examples.py    Google and Bridge profile declarations
+examples/bridge/ Concrete SimplerEnv Bridge adapter and port wiring
 ```
 
 `examples.py` is declarative only. It intentionally does not import SimplerEnv
-or encode a robot pose. The old example profiles remain single-camera examples;
-an integration registers any additional cameras on its own `EnvironmentProfile`.
-It does not create another copy of `pipeline.py` for each robot. See
+or encode a robot pose. The optional `examples/bridge` integration is the
+first concrete adapter: it connects SimplerEnv Bridge to the generic workflow
+without copying its pipeline. See
+[`examples/bridge/README.md`](examples/bridge/README.md) and
 [`docs/MULTIVIEW_COTRACKER_PIPELINE.md`](docs/MULTIVIEW_COTRACKER_PIPELINE.md).
 
 ## Minimal integration
